@@ -14,7 +14,9 @@
     p3_drawAfter
 */
 
+let tilesetImage;
 function p3_preload() {
+    tilesetImage = loadImage("assets/tilesheet_complete.png");  // from Kenney.nl
 }
 
 function p3_setup() { }
@@ -38,6 +40,7 @@ let [tw, th] = [p3_tileWidth(), p3_tileHeight()];
 
 let clicks = {};
 let rippleSources = [];
+let tileSprites = {};
 
 function p3_tileClicked(i, j) {
     let key = [i, j];
@@ -45,11 +48,19 @@ function p3_tileClicked(i, j) {
     rippleSources.push([i,j, millis()]);
 }
 
-function p3_drawBefore() { }
+function p3_drawBefore() {
+}
 
 let hThresh = 0.01;
 function p3_drawTile(i, j) {
     noStroke();
+
+    let key = [i, j];
+    if (!tileSprites[key]) {
+        // let subtypeSeed = worldSeed + i + "," + j;  // TODO is this correct?
+        let n = (noise(i, j) * 4) | 0;
+        tileSprites[key] = n;
+    }
 
     if (XXH.h32("tile:" + [i, j], worldSeed) % 4 == 0) {
         fill(240, 200);
@@ -57,6 +68,7 @@ function p3_drawTile(i, j) {
         fill(255, 200);
     }
 
+    // TODO: how to make it s.t. ripples push down first
     function r(i, j) {
         let h = 0;
         for (let [ri, rj, t] of rippleSources) {
@@ -66,19 +78,20 @@ function p3_drawTile(i, j) {
             let timePassed = abs(t - millis());
             let easeIn =(abs(r - timePassed/16) + 1); // iot to make the force shift its peak over time
             let easeOut = (5000 - timePassed)/5000;  // should prolly clamp this
-            h += (((sin(r+millis()/1000))/r*r) / sqrt(easeIn)) * easeOut;
+            h += ((sin(r+millis()/1000)/r*r) / sqrt(easeIn)) * easeOut;
             if (timePassed > 5000) rippleSources.shift();
         }
         return h * p3_tileWidth();
     }
     push();  // start new drawing state
-
-    beginShape();
-    vertex(-tw, 0 - r(i, j));  // defined in .p3_tileHeight
-    vertex(0, th - r(i, j));
-    vertex(tw, 0 - r(i, j));
-    vertex(0, -th - r(i, j));
-    endShape(CLOSE);
+    // beginShape();
+    // vertex(-tw, 0 - r(i, j));  // defined in .p3_tileHeight
+    // vertex(0, th - r(i, j));
+    // vertex(tw, 0 - r(i, j));
+    // vertex(0, -th - r(i, j));
+    // endShape(CLOSE);
+    // let a = random(4) | 0;
+    placeTile(0, tileSprites[key], r(i, j));
 
     let c = clicks[[i, j]] | 0;
     if (c % 2 == 1) {
@@ -90,6 +103,10 @@ function p3_drawTile(i, j) {
     }
 
     pop();
+}
+
+function placeTile(ti, tj, hOff) {  // ti and tj determine tile used
+  image(tilesetImage, 0, 0+hOff, 64, 64, ti * 110, tj * 128, 110, 128); // take offset from lookup(code)
 }
 
 function p3_drawSelectedTile(i, j) {
