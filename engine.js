@@ -152,19 +152,17 @@ function draw() {
 
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
-      drawTile(tileRenderingOrder([x + world_offset.x, y - world_offset.y]), [
-        camera_offset.x,
-        camera_offset.y
-      ]); // odd row
+      drawTile(tileRenderingOrder([x + world_offset.x, y - world_offset.y]), [camera_offset.x, camera_offset.y]); // odd row
     }
     for (let x = x0; x < x1; x++) {
-      drawTile(
-        tileRenderingOrder([
-          x + 0.5 + world_offset.x,
-          y + 0.5 - world_offset.y
-        ]),
-        [camera_offset.x, camera_offset.y]
-      ); // even rows are offset horizontally
+      drawTile(tileRenderingOrder([x + 0.5 + world_offset.x, y + 0.5 - world_offset.y]), [camera_offset.x, camera_offset.y]); // even rows are offset horizontally
+    }
+    // animals
+    for (let x = x0; x < x1; x++) {
+      drawAnimal(tileRenderingOrder([x + world_offset.x, y - world_offset.y]), [camera_offset.x, camera_offset.y]); // odd row
+    }
+    for (let x = x0; x < x1; x++) {
+      drawAnimal(tileRenderingOrder([x + 0.5 + world_offset.x, y + 0.5 - world_offset.y]), [camera_offset.x, camera_offset.y]); // even rows are offset horizontally
     }
   }
 
@@ -203,6 +201,19 @@ function drawTile([world_x, world_y], [camera_x, camera_y]) {
   translate(0 - screen_x, screen_y);
   if (window.p3_drawTile) {
     window.p3_drawTile(world_x, world_y, -screen_x, screen_y);
+  }
+  pop();
+}
+
+function drawAnimal([world_x, world_y], [camera_x, camera_y]) {
+  let [screen_x, screen_y] = worldToScreen(
+    [world_x, world_y],
+    [camera_x, camera_y]
+  );
+  push();
+  translate(0 - screen_x, screen_y);
+  if (window.p3_drawAnimal) {  // mine
+    window.p3_drawAnimal(world_x, world_y, -screen_x, screen_y);
   }
   pop();
 }

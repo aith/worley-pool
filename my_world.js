@@ -14,9 +14,46 @@
     p3_drawAfter
 */
 
+// todo
+// - add animals animals grazing, maybe they also cause ripples. im thinking we need a spawned array that checks if spawn like w placeTile
+// vegetation https://pablogamedev.itch.io/free-isometric-ature-voxel-enviroment
+// https://finalbossblues.itch.io/animals-sprite-pack
+// https://seliel-the-shaper.itch.io/monsterbattlerset
+// isometric items https://ssugmi.itch.io/16x16-pixel-kitchenwareingredients-pack
+// https://withering-systems.itch.io/city-game-tileset
+// viking ship https://helianthus-games.itch.io/pixel-art-viking-ship-16-directions
+//
+
+class Sprite {
+    constructor(animation, option, speed) {
+        this.animation = animation;
+        this.option = option;
+        this.speed = speed;
+        this.index = 0;
+        this.wO = 42;
+        this.hO = 36;
+        this.totalFrames = 3;
+    }
+
+    show() {
+        let index = floor(this.index) % this.totalFrames;
+        image(this.animation, 0, 0, 40, 40, index * this.wO, this.option * this.hO, this.wO, this.hO);
+    }
+
+    animate() {
+        this.index += this.speed;
+    }
+}
+
 let tilesetImage;
+let animalImage;
+let pigImage;
+let pigs = [];
+let pig;
 function p3_preload() {
-    tilesetImage = loadImage("assets/tilesheet_complete.png");  // from Kenney.nl
+    tilesetImage = loadImage("assets/tilesheet_complete_2.png");  // from Kenney.nl
+    animalImage = loadImage("assets/animals/animals3.png");
+    pig = new Sprite(animalImage, 5 , .0007);
 }
 
 function p3_setup() { }
@@ -45,7 +82,7 @@ let tileSprites = {};
 function p3_tileClicked(i, j) {
     let key = [i, j];
     clicks[key] = 1 + (clicks[key] | 0);  // increment clicks
-    rippleSources.push([i,j, millis()]);
+    rippleSources.push([i, j, millis()]);
 }
 
 function p3_drawBefore() {
@@ -74,11 +111,11 @@ function p3_drawTile(i, j) {
         for (let [ri, rj, t] of rippleSources) {
             let di = i - ri;
             let dj = j - rj;
-            let r = sqrt(di*di+dj*dj) + 1;  // + 1 iot make tile with radius == 0 not be erased
+            let r = sqrt(di * di + dj * dj) + 1;  // + 1 iot make tile with radius == 0 not be erased
             let timePassed = abs(t - millis());
-            let easeIn =(abs(r - timePassed/16) + 1); // iot to make the force shift its peak over time
-            let easeOut = (5000 - timePassed)/5000;  // should prolly clamp this
-            h += ((sin(r+millis()/1000)/r*r) / sqrt(easeIn)) * easeOut;
+            let easeIn = (abs(r - timePassed / 16) + 1); // iot to make the force shift its peak over time
+            let easeOut = (5000 - timePassed) / 5000;  // should prolly clamp this
+            h += ((sin(r + millis() / 1000) / r * r) / sqrt(easeIn)) * easeOut;
             if (timePassed > 5000) rippleSources.shift();
         }
         return h * p3_tileWidth();
@@ -91,7 +128,7 @@ function p3_drawTile(i, j) {
     // vertex(0, -th - r(i, j));
     // endShape(CLOSE);
     // let a = random(4) | 0;
-    placeTile(0, tileSprites[key], r(i, j));
+    placeTile(tileSprites[key], tileSprites[key], r(i, j));
 
     let c = clicks[[i, j]] | 0;
     if (c % 2 == 1) {
@@ -106,8 +143,19 @@ function p3_drawTile(i, j) {
 }
 
 function placeTile(ti, tj, hOff) {  // ti and tj determine tile used
-  image(tilesetImage, 0, 0+hOff, 64, 64, ti * 110, tj * 128, 110, 128); // take offset from lookup(code)
+    image(tilesetImage, 0, 0 + hOff, 64, 64, ti * 110, tj * 128, 110, 128); // take offset from lookup(code)
 }
+
+function p3_drawAnimal(i, j) {
+    push();  
+    let tr = 15;
+    translate(tr,0)
+    pig.show()
+    pig.animate()
+    translate(-tr,0)
+    pop();
+}
+    
 
 function p3_drawSelectedTile(i, j) {
     noFill();
