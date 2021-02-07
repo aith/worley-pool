@@ -163,7 +163,7 @@ function p3_drawTile(i, j) {
 
 function placeTile(ti, tj, hOff) {
   // ti and tj determine tile used
-  image(tilesetImage, 0, 0 + hOff, 64, 64, ti * 111, tj * 128, 111, 128); // take offset from lookup(code)
+  image(tilesetImage, -32, -16 + hOff, 64, 64, ti * 111, tj * 128, 111, 128); // take offset from lookup(code)
 }
 
 function p3_drawAnimal(i, j) {
