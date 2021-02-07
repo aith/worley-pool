@@ -108,13 +108,6 @@ function p3_drawTile(i, j) {
   let key = [i, j];
   let feats;
   noStroke();
-  // if (XXH.h32("tile:" + [i, j], worldSeed) % 4 == 0) {
-  //   fill(240, 200);
-  // } else {
-  //   fill(255, 200);
-  // }
-    let debugR = false;
-    let debugcp;
   push(); // start new drawing state
   let home = roundToNearestSupercell(i, j);
   if(arrayEquals(key, home)) {
@@ -126,34 +119,48 @@ function p3_drawTile(i, j) {
     }
   }
 
-  if (!pointers[home]) {  // if the home isn't found yet, and thus hasn't assigned a point
+  let hp;
+  if (!pointers[home]) {  // if the home hasn't generated yet, and thus hasn't assigned a point
     fill(0,0,0);
   }
   else {  // note this happens every frame
-    debugR = true;
+    let pp = pointers[home];
+    hp = points[pp];
+
+    if (arrayEquals(key, pp) ) {  // moven point
+      let clampx1 = home[0] - floor(supercellDiameter()/2),
+          clampx2 = home[0] + floor(supercellDiameter()/2),
+          clampy1 = home[1] - floor(supercellDiameter()/2),
+          clampy2 = home[1] + floor(supercellDiameter()/2);
+      let np = getMovedPoint(i, j, clampx1, clampx2, clampy1, clampy2, hp[0], hp[1]);
+      let dx = abs(np[0] - i);
+      let dy = abs(np[1] - j);
+      let par_dx = dx | 0;
+      let par_dy = dy | 0;
+      if (par_dx != 0 || par_dy != 0) { // check if point moved onto new tile
+        // assignNewPointParent(i, j, par_dx, par_dy, pp[0], pp[1], np);
+      } else {  // otherwise update val
+        // print(arrayEquals(points[pp], np))
+        points[pp] = np;
+      }
+    }
+
+    // get dists
     let neighbors = getNeighborSupercells(home[0], home[1]);
-    // print(neighbors)
-    let hp = points[pointers[home]];
     let min = dist(i, j, hp[0], hp[1]);
     let cp = hp;
-    debugcp = cp;
-    // if (i == 0 && j == 0) print(hp)
     let b = 0;
     for(let idx = 0; idx < neighbors.length; idx++) {
       let p = points[pointers[neighbors[idx]]];
-      // if (i == 5 && j == 5) print(p)
       if(!p) continue; // p's center hasn't rendered yet
       let d = dist(i, j, p[0], p[1]);
       if(d < min)
       {
         min = d;
         cp = neighbors[idx];
-        debugcp = cp;
       }
-      // if (i == 5 && j == 5) print(b)
     }
-    // if (i == 30 && j == 25) print( b);
-    let m = map(min, 0, sqrt(50), 0, 25)
+    let m = map(min, 0, sqrt(50), 10, 40)
     m *= m;  // sharper differences
     fill(m, m/3, 0)  // lava
     // TODO also add height
@@ -161,7 +168,6 @@ function p3_drawTile(i, j) {
   endShape(CLOSE);
   fill(255,255,255)
   let word = "|";
-  if(arrayEquals(debugcp, points[pointers[home]])) { word = "-" }
   // text(word, -2,-10,30,30);
   // let c = clicks[[i, j]] | 0;
   // if (c % 2 == 1) {
@@ -174,6 +180,12 @@ function p3_drawTile(i, j) {
   }
 
   pop();
+}
+
+function assignNewPointParent(x1, y1, x2, y2, homex, homey, point) {
+  delete points[[x1, y1]];
+  pointers[[homex, homey]] = [x2, y2];
+  points[[x2, y2]] = point;
 }
 
 // this is where the eval points should be anchored to. This is the center of each box
@@ -197,6 +209,17 @@ function getNeighborSupercells(i, j) {
     [i+o, j-o],
     [i-o, j+o]
   ];
+}
+
+function getMovedPoint(i, j, clampx1, clampx2, clampy1, clampy2, pointx, pointy) {
+  noiseSeed("move"+i+j)
+  // let dx = 1 * noise(i, j) - .5;  // do these return the same two values?
+  // let dy = 1 * noise(i, j) - .5;
+  let dx = 1 * random(0, 1) - .5;  // do these return the same two values?
+  let dy = 1 * random(0, 1) - .5;
+  let nx = constrain(pointx + dx, clampx1, clampx2)  // TODO replace these with a smoother clamp
+  let ny = constrain(pointy + dy, clampy1, clampy2)
+  return [nx, ny];
 }
 
 function getPoint(i, j, offset) {
