@@ -1,5 +1,19 @@
 "use strict";
 
+/*
+Implementation:
+Worley Noise, but instead of changing the colors of pixels, the colors of tiles are used. Also, spacial
+subdivision is used for performance, a la Worley's paper; the space is broken up into a grid, and each point needs
+to only check if its closest to points within the surrounding 8+1 tiles.
+ */
+
+/*
+Random notes
+- wow, text() is such a good debugging feature
+- change the frameRate for debugging too
+- watch for variable name overlaps- caused me to waste 1-2 hours
+ */
+
 /* global XXH */
 /* exported --
     p3_preload
@@ -93,48 +107,16 @@ let seen = {}, seeds = {}, evals = {}, counts = {}, distances = {};
 function p3_drawTile(i, j) {
   let key = [i, j];
   let feats;
-  // if (!seen[key]) {
-  //   seen[key] = true;
-  //   if (evalGenIndex > evalGenThresh) {
-  //     evals[key] = genEvalPoint(i, j);
-  //     reseedThresh(i, j);
-  //     evalGenIndex = 0;
-  //   }
-  //   evalGenIndex++;
-  // }
-  // if (!seen[key]) {
-  //   seen[key] = true;
-  //   if (evalGenIndex > evalGenThresh) {
-  //     evals[key] = genEvalPoint(i, j);
-  //     reseedThresh(i, j);
-  //     evalGenIndex = 0;
-  //   }
-  //   evalGenIndex++;
-  // }
-  // if (!hasHome[key]) {      evals[key] = genEvalPoint(i, j); hasHome[key] = true; }
-  // if (!hasSeed[key]) {      seeds[key] = getSeed(i, j); hasSeed[key] = true; }
-  // if (!hasCount[key]) {     counts[key] = getPointCount(i, j, seeds[key]); hasCount[key] = true; }
-  // if (!hasPlotted[key]) {   feats = genFeatPoints(i, j); hasPlotted[key] = true; }
-  // if (!foundClosest[key]) { findClosestPointInside(i, j, feats); foundClosest[key] = true; }  // 5 n 666666
   noStroke();
   // if (XXH.h32("tile:" + [i, j], worldSeed) % 4 == 0) {
   //   fill(240, 200);
   // } else {
   //   fill(255, 200);
   // }
+    let debugR = false;
+    let debugcp;
   push(); // start new drawing state
-  // beginShape();
-  // if(evals[key]) {
-  //   ellipse(0,0, 10, 10);
-  // }
-  // vertex(0, th);
-  // vertex(tw, 0 );
-  // vertex(0, -th);
-  // vertex(-tw, 0);
-
-  // print(dist(i+wr, j+hr, roundToNearestSupercell(i, j)))
   let home = roundToNearestSupercell(i, j);
-  // print(home)
   if(arrayEquals(key, home)) {
     if(!pointers[key]) {  // if home doesn't have a point
       let p = getPoint(i, j, supercellDiameter());
@@ -148,38 +130,49 @@ function p3_drawTile(i, j) {
     fill(0,0,0);
   }
   else {  // note this happens every frame
+    debugR = true;
     let neighbors = getNeighborSupercells(home[0], home[1]);
     // print(neighbors)
     let hp = points[pointers[home]];
     let min = dist(i, j, hp[0], hp[1]);
     let cp = hp;
+    debugcp = cp;
+    // if (i == 0 && j == 0) print(hp)
     let b = 0;
-    for(let i = 0; i < neighbors.length; i++) {
-        b++
-      let p = points[pointers[neighbors[i]]];
-      // if (i == 5 && j == 5) print(b)
+    for(let idx = 0; idx < neighbors.length; idx++) {
+      let p = points[pointers[neighbors[idx]]];
+      // if (i == 5 && j == 5) print(p)
       if(!p) continue; // p's center hasn't rendered yet
       let d = dist(i, j, p[0], p[1]);
-      if(min > abs(d))
+      if(d < min)
       {
         min = d;
-        cp = neighbors[i];
+        cp = neighbors[idx];
+        debugcp = cp;
       }
       // if (i == 5 && j == 5) print(b)
     }
     // if (i == 30 && j == 25) print( b);
-    fill(min * 60, 0, 0)  // TODO also add height
+    let m = map(min, 0, sqrt(50), 0, 25)
+    m *= m;  // sharper differences
+    fill(m, m/3, 0)  // lava
+    // TODO also add height
   }
   endShape(CLOSE);
-  let c = clicks[[i, j]] | 0;
-  if (c % 2 == 1) {
-    // translate(-20, -90)
-  }
+  fill(255,255,255)
+  let word = "|";
+  if(arrayEquals(debugcp, points[pointers[home]])) { word = "-" }
+  // text(word, -2,-10,30,30);
+  // let c = clicks[[i, j]] | 0;
+  // if (c % 2 == 1) {
+  //   // translate(-20, -90)
+  // }
   if(arrayEquals(key, pointers[home])) {  // draw points
-    fill(255)
+    fill(255,255,0 )
     ellipse(0,0,10,10)
     // points[pointers[home]][0] += noise(i, j);
   }
+
   pop();
 }
 
@@ -206,21 +199,12 @@ function getNeighborSupercells(i, j) {
   ];
 }
 
-function attachPointer(x, y, a, b) {
-  //first remove from points, if anchor points to one
-  let old = pointers[[x,y]];
-  delete points[old];
-  let _new = [a, b]
-  pointers[[x,y]] = _new;
-}
-
 function getPoint(i, j, offset) {
   // noiseSeed(getSeed(i,j));
-  // print(noise(i, j))
   // let x = i - offset/2 + noise(i, 0) * offset;
   // let y = j - offset/2 + noise(0, j) * offset;
-  let x = i - floor(offset/2) + random() * offset;
-  let y = j - floor(offset/2) + random() * offset;
+  let x = i - floor(offset/2) + random(0, 1) * (offset-1);
+  let y = j - floor(offset/2) + random(0, 1) * (offset-1);
   return [x, y];
 }
 
@@ -240,26 +224,6 @@ function getPointCount(i, j, seed) {
   let max = 4;
   let count = constrain(noise(1,max+1), 1, max) | 0;  // how dould I have done poisson?
   return count;
-}
-function genFeatPoints(i, j, count) {
-  let feats = [];
-  for(let p=0; p<count; p++) {
-    feats.push([i + noise(0, 1), j + noise(0, 1)]);
-  }
-  if (i == 0 && j == 1) print(feats);
-  return feats;
-}
-function findClosestPointInside(i, j, points) {
-  let ld=dist(i, j, points[0][0], points[0][1]);
-  let cp=0;
-  for(let p=1; p<points.length; p++) {
-    let d = dist(i, j, points[p][0], points[p][1]);
-    if (d < ld) {
-      ld = d;
-      cp = p;
-    }
-  }
-  return points[cp];
 }
 
 function placeTile(ti, tj, hOff) {
