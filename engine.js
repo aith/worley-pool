@@ -137,7 +137,7 @@ function draw() {
   );
   let world_offset = cameraToWorldOffset([camera_offset.x, camera_offset.y]);
 
-  background(100);
+  background(255, 122, 0)
 
   if (window.p3_drawBefore) {
     window.p3_drawBefore();

@@ -2,8 +2,8 @@
 
 /*
 Implementation:
-Worley Noise, but instead of changing the colors of pixels, the colors of tiles are used. Also, spacial
-subdivision is used for performance, a la Worley's paper; the space is broken up into a grid, and each point needs
+1-node-per-cube Worley Noise, but instead of changing the colors of pixels, the colors of tiles are used. Like in Worley's
+paper, spacial subdivision is used for performance; the space is broken up into a grid, and each point needs
 to only check if its closest to points within the surrounding 8+1 tiles.
  */
 
@@ -102,11 +102,8 @@ function p3_drawBefore() {}
 
 let pointers = {}, points = {}; //
 // Q: do i need to store this much data?
-let hasHome = {}, hasSeed = {}, hasCount = {}, hasPlotted = {}, foundClosest = {};
-let seen = {}, seeds = {}, evals = {}, counts = {}, distances = {};
 function p3_drawTile(i, j) {
   let key = [i, j];
-  let feats;
   noStroke();
   push(); // start new drawing state
   let home = roundToNearestSupercell(i, j);
@@ -163,24 +160,19 @@ function p3_drawTile(i, j) {
     let m = map(min, 0, sqrt(50), 10, 40)
     m *= m;  // sharper differences
 
-    noiseSeed(worldSeed + i + j);
-    let a = noise(i, j)
+    // noiseSeed(worldSeed + i + j);
+    // let a = noise(i, j)
     // let d = noise(i, j)
     // let c = noise(i, j)
     // fill(m * a, m * a * a, m * a * a);
 
     fill(m, m/3, 0)  // lava
-    // TODO also add height
+    let h = -(m / 50);
+    quad(-tw, 0-h,
+        0, th-h,
+        tw, 0-h,
+        0, -th-h);
   }
-  endShape(CLOSE);
-  // fill(255,255,255)
-  // let word = "|";
-  // text(word, -2,-10,30,30);
-  // let c = clicks[[i, j]] | 0;
-  // if (c % 2 == 1) {
-  //   // translate(-20, -90)
-  // }
-
   // displayPoints(i, j, key, home)
 
   pop();
@@ -224,8 +216,6 @@ function getNeighborSupercells(i, j) {
 
 function getMovedPoint(i, j, clampx1, clampx2, clampy1, clampy2, pointx, pointy) {
   noiseSeed("move"+i+j)
-  // let dx = 1 * noise(i, j) - .5;  // do these return the same two values?
-  // let dy = 1 * noise(i, j) - .5;
   let dx = 1 * random(0, 1) - .5;  // do these return the same two values?
   let dy = 1 * random(0, 1) - .5;
   let nx = constrain(pointx + dx, clampx1, clampx2)  // TODO replace these with a smoother clamp
