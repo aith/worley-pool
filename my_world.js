@@ -119,36 +119,36 @@ function p3_drawTile(i, j) {
     }
   }
 
-  let hp;
+  let p;
   if (!pointers[home]) {  // if the home hasn't generated yet, and thus hasn't assigned a point
     fill(0,0,0);
   }
   else {  // note this happens every frame
     let pp = pointers[home];
-    hp = points[pp];
+    p = points[pp];
 
     if (arrayEquals(key, pp) ) {  // moven point
       let clampx1 = home[0] - floor(supercellDiameter()/2),
           clampx2 = home[0] + floor(supercellDiameter()/2),
           clampy1 = home[1] - floor(supercellDiameter()/2),
           clampy2 = home[1] + floor(supercellDiameter()/2);
-      let np = getMovedPoint(i, j, clampx1, clampx2, clampy1, clampy2, hp[0], hp[1]);
-      let dx = abs(np[0] - i);
-      let dy = abs(np[1] - j);
-      let par_dx = dx | 0;
-      let par_dy = dy | 0;
-      if (par_dx != 0 || par_dy != 0) { // check if point moved onto new tile
-        // assignNewPointParent(i, j, par_dx, par_dy, pp[0], pp[1], np);
+      let np = getMovedPoint(i, j, clampx1, clampx2, clampy1, clampy2, p[0], p[1]);
+      let dx = (np[0] | 0) - (i | 0);
+      let dy = (np[1] | 0) - (j | 0);
+      if (dx != 0 || dy != 0) { // check if point moved onto new tile
+        let nx = i + dx;
+        let ny = j + dy;
+        assignNewPointParent(i, j, nx, ny, pp[0], pp[1], np);
+        p = points[[nx,ny]]
+        pointers[home] = [nx, ny];
       } else {  // otherwise update val
-        // print(arrayEquals(points[pp], np))
         points[pp] = np;
       }
     }
-
     // get dists
     let neighbors = getNeighborSupercells(home[0], home[1]);
-    let min = dist(i, j, hp[0], hp[1]);
-    let cp = hp;
+    let min = dist(i, j, p[0], p[1]);
+    let cp = p;
     let b = 0;
     for(let idx = 0; idx < neighbors.length; idx++) {
       let p = points[pointers[neighbors[idx]]];
@@ -162,30 +162,41 @@ function p3_drawTile(i, j) {
     }
     let m = map(min, 0, sqrt(50), 10, 40)
     m *= m;  // sharper differences
+
+    noiseSeed(worldSeed + i + j);
+    let a = noise(i, j)
+    // let d = noise(i, j)
+    // let c = noise(i, j)
+    // fill(m * a, m * a * a, m * a * a);
+
     fill(m, m/3, 0)  // lava
     // TODO also add height
   }
   endShape(CLOSE);
-  fill(255,255,255)
-  let word = "|";
+  // fill(255,255,255)
+  // let word = "|";
   // text(word, -2,-10,30,30);
   // let c = clicks[[i, j]] | 0;
   // if (c % 2 == 1) {
   //   // translate(-20, -90)
   // }
-  if(arrayEquals(key, pointers[home])) {  // draw points
-    fill(255,255,0 )
-    ellipse(0,0,10,10)
-    // points[pointers[home]][0] += noise(i, j);
-  }
+
+  // displayPoints(i, j, key, home)
 
   pop();
 }
 
 function assignNewPointParent(x1, y1, x2, y2, homex, homey, point) {
   delete points[[x1, y1]];
-  pointers[[homex, homey]] = [x2, y2];
   points[[x2, y2]] = point;
+}
+
+function displayPoints(i, j, key, home) {
+  if(arrayEquals(key, pointers[home])) {  // draw points
+    let point = points[pointers[home]];
+    fill(255,255,0 )
+    ellipse(point[0] - i,point[1] - j,10,10)
+  }
 }
 
 // this is where the eval points should be anchored to. This is the center of each box
