@@ -60,11 +60,6 @@ function p3_worldKeyChanged(key) {
   worldSeed = XXH.h32(key, 0);
   noiseSeed(worldSeed);
   randomSeed(worldSeed);
-  reseedThresh();
-}
-
-function reseedThresh(i = 0, j = 0) {
-  evalGenThresh = 5 + noise(i, j) * 15 | 0;
 }
 
 function p3_tileWidth() {
@@ -72,6 +67,10 @@ function p3_tileWidth() {
 }
 function p3_tileHeight() {
   return 8;
+}
+
+function supercellDiameter() {
+  return 5;
 }
 
 let [tw, th] = [p3_tileWidth(), p3_tileHeight()];
@@ -135,36 +134,76 @@ function p3_drawTile(i, j) {
 
   // print(dist(i+wr, j+hr, roundToNearestSupercell(i, j)))
   let home = roundToNearestSupercell(i, j);
+  // print(home)
   if(arrayEquals(key, home)) {
-    if(!pointer[key]) {
-      let p = getPoint(i, j);
-      let pt = [floor(p[0]),floor(p[1])];
-      pointer[key] = pt;
-      point[pt] = p;
+    if(!pointers[key]) {  // if home doesn't have a point
+      let p = getPoint(i, j, supercellDiameter());
+      let tile = [floor(p[0]),floor(p[1])];
+      pointers[key] = tile;
+      points[tile] = p;
     }
   }
 
-  let n = dist(i, j, home[0], home[1]);
-  fill(n*n * 60, 0, 0)
+  if (!pointers[home]) {  // if the home isn't found yet, and thus hasn't assigned a point
+    fill(0,0,0);
+  }
+  else {  // note this happens every frame
+    let neighbors = getNeighborSupercells(home[0], home[1]);
+    // print(neighbors)
+    let hp = points[pointers[home]];
+    let min = dist(i, j, hp[0], hp[1]);
+    let cp = hp;
+    let b = 0;
+    for(let i = 0; i < neighbors.length; i++) {
+        b++
+      let p = points[pointers[neighbors[i]]];
+      // if (i == 5 && j == 5) print(b)
+      if(!p) continue; // p's center hasn't rendered yet
+      let d = dist(i, j, p[0], p[1]);
+      if(min > abs(d))
+      {
+        min = d;
+        cp = neighbors[i];
+      }
+      // if (i == 5 && j == 5) print(b)
+    }
+    // if (i == 30 && j == 25) print( b);
+    fill(min * 60, 0, 0)  // TODO also add height
+  }
   endShape(CLOSE);
   let c = clicks[[i, j]] | 0;
   if (c % 2 == 1) {
-    translate(-20, -90)
+    // translate(-20, -90)
   }
-    fill(0)
-    ellipse(0,0,20,20)
+  if(arrayEquals(key, pointers[home])) {  // draw points
+    fill(255)
+    ellipse(0,0,10,10)
+    // points[pointers[home]][0] += noise(i, j);
   }
   pop();
 }
 
 // this is where the eval points should be anchored to. This is the center of each box
 // used for getting a tile's box center
-let boxDiameter = 5;
 function roundToNearestSupercell(x, y) {
-  let d = 5;
+  let d = supercellDiameter();
   let nx = round(x / d) * d;
   let ny = round(y / d) * d;
   return [nx, ny]
+}
+
+function getNeighborSupercells(i, j) {
+  let o = supercellDiameter();
+  return [
+    [i-o, j],
+    [i+o, j],
+    [i, j-o],
+    [i, j+o],
+    [i-o, j-o],
+    [i+o, j+o],
+    [i+o, j-o],
+    [i-o, j+o]
+  ];
 }
 
 function attachPointer(x, y, a, b) {
@@ -175,10 +214,13 @@ function attachPointer(x, y, a, b) {
   pointers[[x,y]] = _new;
 }
 
-function getPoint(i, j) {
-  noiseSeed("choosing point for"+[i,j]);
-  let x = noise(i, 0);
-  let y = noise(0, j);
+function getPoint(i, j, offset) {
+  // noiseSeed(getSeed(i,j));
+  // print(noise(i, j))
+  // let x = i - offset/2 + noise(i, 0) * offset;
+  // let y = j - offset/2 + noise(0, j) * offset;
+  let x = i - floor(offset/2) + random() * offset;
+  let y = j - floor(offset/2) + random() * offset;
   return [x, y];
 }
 
@@ -190,7 +232,7 @@ function genEvalPoint(i, j) {
 }
 
 function getSeed(i, j) {
-  return XXH.h32("tile:" + [i, j]);
+  return XXH.h32("" + i + j);
 }
 
 function getPointCount(i, j, seed) {
