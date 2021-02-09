@@ -81,7 +81,7 @@ function setup() {
     rebuildWorld(input.value());
   });
 
-  createP("Arrow keys scroll. Clicking changes tiles.").parent("container");
+  createP("Arrow keys scroll. Clicking changes tiles. Frame rate capped at 3.").parent("container");
 
   rebuildWorld(input.value());
 }
